@@ -10,7 +10,7 @@ import requests
 # 2. CONFIGURAÇÃO PRINCIPAL DA PÁGINA
 # ==============================================================================
 # Cole aqui a URL de 'Production' do seu nó Webhook no n8n.
-N8N_WEBHOOK_URL = "https://labcesmac.app.n8n.cloud/webhook-test/b02e52c0-e394-48c3-85d3-c7fe081b8c5d" 
+N8N_WEBHOOK_URL = "https://labcesmac.app.n8n.cloud/webhook/b02e52c0-e394-48c3-85d3-c7fe081b8c5d" 
 
 st.set_page_config(layout="wide", page_title="Automação de Compra de VR/VA")
 
