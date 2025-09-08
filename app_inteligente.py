@@ -1,77 +1,84 @@
-# app_inteligente_11_arquivos.py
-
-# ==============================================================================
-# 1. IMPORTAÇÃO DAS BIBLIOTECAS
-# ==============================================================================
 import streamlit as st
 import requests
+import io
 
-# ==============================================================================
-# 2. CONFIGURAÇÃO PRINCIPAL DA PÁGINA
-# ==============================================================================
-# Cole aqui a URL de 'Production' do seu nó Webhook no n8n.
-N8N_WEBHOOK_URL = "https://labcesmac.app.n8n.cloud/webhook/b02e52c0-e394-48c3-85d3-c7fe081b8c5d" 
+# --- CONFIGURAÇÃO ---
+# COLE AQUI A URL DE PRODUÇÃO DO SEU WEBHOOK N8N (DA FASE 2)
+N8N_WEBHOOK_URL = "https://labcesmac.app.n8n.cloud/webhook/6bd8c2b6-988c-483b-95af-6cade2c99873" 
+# --------------------
 
-st.set_page_config(layout="wide", page_title="Automação de Compra de VR/VA")
+# Configuração da Página
+st.set_page_config(layout="wide")
+st.title("🤖 Automação de Compra de VR/VA")
+st.markdown("Faça o upload de todas as bases de dados necessárias para o cálculo do mês.")
 
-# ==============================================================================
-# 3. CONSTRUÇÃO DA INTERFACE DO USUÁRIO
-# ==============================================================================
-st.title("🤖 Automação para Compra de Benefícios (VR/VA)")
-st.markdown("Arraste e solte todas as 11 planilhas de base (incluindo o modelo 'VR MENSAL 05.2025.xlsx') na área abaixo.")
+# 1. Criação dos File Uploaders
+st.subheader("1. Upload das Bases de Dados")
+st.warning("Todos os 6 arquivos são obrigatórios.")
 
-st.header("1. Carregar Pacote de Arquivos")
+col1, col2 = st.columns(2)
 
-uploaded_files_list = st.file_uploader(
-    "Arraste as 11 planilhas (.xlsx) aqui:",
-    type=["xlsx"],
-    accept_multiple_files=True
-)
+with col1:
+    file_ativos = st.file_uploader("1. Base de Ativos (Excel)", type=["xlsx"])
+    file_ferias = st.file_uploader("2. Base de Férias (Excel)", type=["xlsx"])
+    file_desligados = st.file_uploader("3. Base de Desligados (Excel)", type=["xlsx"])
 
-# --- MUDANÇA AQUI ---
-# Apenas um feedback visual para o usuário, agora esperando 11 arquivos.
-if uploaded_files_list:
-    st.info(f"Arquivos carregados: {len(uploaded_files_list)} de 11 necessários.")
-else:
-    st.info("Aguardando os 11 arquivos...")
+with col2:
+    file_admitidos = st.file_uploader("4. Base Cadastral (Admitidos Mês) (Excel)", type=["xlsx"])
+    file_sindicatos = st.file_uploader("5. Base Sindicato x Valor (Excel)", type=["xlsx"])
+    file_feriados = st.file_uploader("6. Calendário de Feriados (Est/Mun) (Excel)", type=["xlsx"])
 
 st.divider()
 
-# ==============================================================================
-# 4. LÓGICA DO PROCESSAMENTO (O QUE ACONTECE AO CLICAR NO BOTÃO)
-# ==============================================================================
-if st.button("🚀 Processar e Gerar Arquivo Final", type="primary", use_container_width=True):
-    
-    # --- MUDANÇA AQUI ---
-    # Verificação de Segurança: Agora garantimos que o usuário enviou EXATAMENTE 11 arquivos.
-    if uploaded_files_list and len(uploaded_files_list) == 11:
-        
-        files_to_send_to_n8n = []
-        
-        for i, file in enumerate(uploaded_files_list):
-            files_to_send_to_n8n.append(
-                (f'file_{i}', (file.name, file.getvalue()))
-            )
+# 2. Botão de Processamento e Lógica de Trigger
+st.subheader("2. Processar e Baixar")
 
-        with st.spinner('Aguarde... O agente n8n está lendo 11 arquivos, calculando e gerando o resultado...'):
+if st.button("Executar Cálculo de Benefícios", type="primary"):
+    
+    # Validação: Verifica se todos os 6 arquivos foram enviados
+    all_files = [file_ativos, file_ferias, file_desligados, file_admitidos, file_sindicatos, file_feriados]
+    
+    if not all(all_files):
+        st.error("Erro: Todos os 6 arquivos são obrigatórios para o cálculo. Por favor, faça o upload de todos.")
+    
+    elif N8N_WEBHOOK_URL == "https://SEU_DOMINIO_N8N.com/webhook/ID_DO_WEBHOOK":
+         st.error("ERRO DE CONFIGURAÇÃO: Você não atualizou a variável 'N8N_WEBHOOK_URL' no script 'app.py'!")
+         
+    else:
+        # Se tudo estiver OK, executa a automação
+        with st.spinner("Processando... Enviando arquivos ao n8n. O n8n está consolidando, aplicando regras e calculando. Isso pode levar um minuto..."):
             try:
-                response = requests.post(N8N_WEBHOOK_URL, files=files_to_send_to_n8n, timeout=300)
+                # 3. Preparar arquivos para envio (multipart/form-data)
+                # Os nomes ('file_ativos', etc) DEVEM ser os mesmos que o script Python no n8n espera!
+                files_to_send = {
+                    'file_ativos': (file_ativos.name, file_ativos.getvalue(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+                    'file_ferias': (file_ferias.name, file_ferias.getvalue(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+                    'file_desligados': (file_desligados.name, file_desligados.getvalue(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+                    'file_admitidos': (file_admitidos.name, file_admitidos.getvalue(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+                    'file_sindicatos': (file_sindicatos.name, file_sindicatos.getvalue(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+                    'file_feriados': (file_feriados.name, file_feriados.getvalue(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+                }
+
+                # 4. Chamar o Webhook do n8n
+                response = requests.post(N8N_WEBHOOK_URL, files=files_to_send, timeout=300) # Timeout de 5 minutos
+
+                # 5. Tratamento da Resposta
+                # Gera um erro se o n8n retornar status 4xx ou 5xx (ex: se o script Python falhar)
                 response.raise_for_status() 
 
-                st.success("Processamento concluído com sucesso!")
+                # Se sucesso (200), o n8n retorna o arquivo excel binário
+                st.success("Processamento concluído com sucesso pelo n8n!")
 
+                # 6. Oferecer o arquivo para download
                 st.download_button(
-                    label="✅ Baixar Planilha Final para Fornecedor",
-                    data=response.content,
-                    file_name="VR_MENSAL_PROCESSADO.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
+                    label="Clique aqui para baixar o Layout de Compra (XLSX)",
+                    data=response.content, # O conteúdo binário (o arquivo) retornado pelo n8n
+                    file_name="Calculo_VR_Layout_Final.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
 
+            except requests.exceptions.HTTPError as http_err:
+                st.error(f"Erro do n8n (HTTP {http_err.response.status_code}): {http_err}")
+                st.error(f"Resposta completa do servidor (provável erro no script Python): {response.text}")
             except Exception as e:
-                st.error(f"Ocorreu um erro inesperado: {e}")
-
-    else:
-        # --- MUDANÇA AQUI ---
-        # A mensagem de aviso agora reflete a necessidade dos 11 arquivos.
-        st.warning(f"Atenção: Você carregou {len(uploaded_files_list)} arquivo(s). Por favor, carregue todos os 11 arquivos juntos.")
+                st.error(f"Ocorreu um erro inesperado na comunicação com o n8n: {e}")
