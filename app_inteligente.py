@@ -4,7 +4,7 @@ import io
 
 # --- CONFIGURAÇÃO ---
 # COLE AQUI A URL DE PRODUÇÃO DO SEU WEBHOOK N8N (DA FASE 2)
-N8N_WEBHOOK_URL = "https://labcesmac.app.n8n.cloud/webhook/6bd8c2b6-988c-483b-95af-6cade2c99873" 
+N8N_WEBHOOK_URL = "https://labcesmac.app.n8n.cloud/webhook/be555f04-b1d5-47af-b3d5-71dc45c44c8d" 
 # --------------------
 
 # Configuração da Página
